@@ -1,44 +1,34 @@
-# vue-project
+# Graduating-Project（前后端同仓）
 
-This template should help get you started developing with Vue 3 in Vite.
+| 目录 | 说明 |
+|------|------|
+| `frontend/` | Vue 3 + Vite 前端 |
+| `backend/` | Spring Boot 后端（`medical-multimodal`） |
 
-## Recommended IDE Setup
+## 本地运行
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+**前端**
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
+cd frontend
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+默认开发地址见 `frontend/vite.config.js`（当前为 `http://localhost:5174`）。
 
-```sh
-npm run build
+**后端**
+
+```bash
+cd backend
+./mvnw spring-boot:run
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+默认 `http://localhost:8080`。
 
-```sh
-npm run lint
-```
+## 部署
+
+- 前端：推送到 `main` 后由 GitHub Actions 构建 `frontend/` 并发布到 GitHub Pages。
+- 后端：需自行部署到云服务器 / 容器等（本仓库 workflow 仅负责前端静态站点）。
+
+更详细的 API 与数据库脚本见 `backend/docs/`。

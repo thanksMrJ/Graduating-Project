@@ -1,39 +1,14 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
 .DS_Store
-dist
-dist-ssr
-coverage
-*.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# 迁移后可能仍留在仓库根目录的旧构建产物（可手动删除本地 node_modules / dist）
+/node_modules/
+/dist/
 
-*.tsbuildinfo
+# 前端
+frontend/node_modules/
+frontend/dist/
 
-.eslintcache
-
-# Cypress
-/cypress/videos/
-/cypress/screenshots/
-
-# Vitest
-__screenshots__/
-
-# Vite
-*.timestamp-*-*.mjs
+# 后端
+backend/target/
+backend/.idea/
+*.iml
