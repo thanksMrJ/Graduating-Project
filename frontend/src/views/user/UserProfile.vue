@@ -47,8 +47,8 @@ const quickCopy = async (text) => {
           </div>
 
           <div class="head-actions">
-            <el-button class="btn-ghost" @click="goAnalyze">开始病历分析</el-button>
-            <el-button type="primary" @click="goRecords">查看记录</el-button>
+            <el-button class="btn-ghost" @click="goAnalyze">创建任务</el-button>
+            <el-button type="primary" @click="goRecords">待分析任务</el-button>
           </div>
         </div>
       </template>
@@ -85,10 +85,10 @@ const quickCopy = async (text) => {
 
         <el-alert
           title="提示"
-          type="info"
+          type="success"
           show-icon
           :closable="false"
-          description="当前为前端演示版：个人信息与病历记录暂存于本地 localStorage；后续会接入后端与数据库。"
+          description="已接入后端：个人信息与登录态由服务端校验，任务列表在「待分析任务」中查看。"
         />
       </template>
 

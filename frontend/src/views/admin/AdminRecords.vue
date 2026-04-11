@@ -1,28 +1,33 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import { useAppStore } from '@/stores/appStore'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { adminApi } from '@/api/http'
 
-const appStore = useAppStore()
+const records = ref([])
+
+const loadRecords = async () => {
+  records.value = await adminApi('/api/v1/admin/records', { method: 'GET' })
+}
+
+onMounted(() => {
+  loadRecords().catch((e) => ElMessage.error(e?.message || '加载记录失败'))
+})
 
 // 搜索关键字
 const keyword = ref('')
 
 // 将 records 统一成带 userName + displayTaskId 的展示数据
 const recordsWithUser = computed(() => {
-  const userMap = new Map(appStore.users.map(u => [String(u.id), u]))
-
-  // 1) 先按 createdAt（升序）计算每个 user 的第几次分析：userId-1, userId-2...
-  const seqMap = new Map() // key: recordId -> seq number
-  const sortedForSeq = [...appStore.records].sort((a, b) => {
+  const seqMap = new Map()
+  const sortedForSeq = [...records.value].sort((a, b) => {
     const da = String(a.createdAt || '')
     const db = String(b.createdAt || '')
     if (da < db) return -1
     if (da > db) return 1
-    // createdAt 相同，尽量保证稳定：用原始 id 再比一下
     return String(a.id).localeCompare(String(b.id))
   })
 
-  const counter = new Map() // userId -> count
+  const counter = new Map()
   for (const r of sortedForSeq) {
     const uid = String(r.userId ?? '')
     const next = (counter.get(uid) || 0) + 1
@@ -30,13 +35,11 @@ const recordsWithUser = computed(() => {
     seqMap.set(String(r.id), next)
   }
 
-  // 2) 再按原始 records 顺序返回（一般最新在前），并注入 displayTaskId
-  return appStore.records.map((r) => {
-    const u = userMap.get(String(r.userId))
+  return records.value.map((r) => {
     const seq = seqMap.get(String(r.id)) || 0
     return {
       ...r,
-      userName: u?.name || '（未知用户）',
+      userName: r.userName || '（未知用户）',
       displayTaskId: `${String(r.userId)}-${seq || 1}`,
     }
   })
@@ -77,6 +80,7 @@ const detail = reactive({
   imaging: '',
   explanation: '',
   result: '',
+  remarks: '',
 })
 
 const openDetail = (row) => {
@@ -90,20 +94,53 @@ const openDetail = (row) => {
   detail.title = row.title
   detail.status = row.status
 
-  // 兼容：
-  // - UserAnalyze 写入的是 detail: { textReport, indicators, imagingDesc, result }
-  // - 旧版本可能是字符串或其它字段
+  // 兼容 UserAnalyze：textReport + textReportFiles、indicatorFiles、imagingFiles、uploadedFiles、remarks
   const d = row.detail
 
-  detail.reportText = d?.textReport || d?.reportText || (typeof d === 'string' ? d : '（占位）')
-  detail.indicators = d?.indicators || '（占位）'
-  detail.imaging = d?.imagingDesc || d?.imaging || '（占位）'
-  detail.explanation = d?.explanation || '（占位）'
-  detail.result = d?.result || '（占位）等待后端返回'
+  const linesTextReportFiles = Array.isArray(d?.textReportFiles)
+    ? d.textReportFiles.map((f) => `${f?.name || ''} (${f?.objectKey || ''})`).join('\n')
+    : ''
+  const baseReport =
+    d?.textReport || d?.reportText || (typeof d === 'string' ? d : '') || '（无文本）'
+  detail.reportText = linesTextReportFiles ? `${baseReport}\n\n【病例报告文件】\n${linesTextReportFiles}` : baseReport
+
+  const linesInd = Array.isArray(d?.indicatorFiles)
+    ? d.indicatorFiles.map((f) => `${f?.name || ''} (${f?.objectKey || ''})`).join('\n')
+    : ''
+  detail.indicators = linesInd || d?.indicators || '（无）'
+
+  const linesImg = Array.isArray(d?.imagingFiles)
+    ? d.imagingFiles.map((f) => `${f?.name || ''} (${f?.objectKey || ''})`).join('\n')
+    : ''
+  detail.imaging = linesImg || d?.imagingDesc || d?.imaging || '（无）'
+
+  const parts = []
+  if (Array.isArray(d?.uploadedFiles) && d.uploadedFiles.length) {
+    parts.push('【附件】\n' + JSON.stringify(d.uploadedFiles, null, 2))
+  }
+  if (d?.explanation) parts.push(String(d.explanation))
+  detail.explanation = parts.length ? parts.join('\n\n') : '（无）'
+  detail.result = d?.result || '（占位）等待模型接口返回'
+  detail.remarks = d?.remarks || ''
 }
 
 const resetSearch = () => {
   keyword.value = ''
+}
+
+const deleteRecord = async (row) => {
+  try {
+    await ElMessageBox.confirm('确认删除该条病历分析记录？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await adminApi(`/api/v1/admin/records/${row.id}`, { method: 'DELETE' })
+    ElMessage.success('已删除')
+    await loadRecords()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e?.message || '删除失败')
+  }
 }
 
 const statusType = (s) => {
@@ -161,9 +198,10 @@ const statusType = (s) => {
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" width="120" align="center">
+      <el-table-column label="操作" width="200" align="center">
         <template #default="scope">
           <el-button type="primary" link @click="openDetail(scope.row)">查看详情</el-button>
+          <el-button type="danger" link @click="deleteRecord(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -208,6 +246,10 @@ const statusType = (s) => {
 
       <el-form-item label="解释信息">
         <el-input v-model="detail.explanation" type="textarea" :rows="3" disabled />
+      </el-form-item>
+
+      <el-form-item v-if="detail.remarks" label="备注">
+        <el-input v-model="detail.remarks" type="textarea" :rows="2" disabled />
       </el-form-item>
 
       <el-form-item label="分析结果">

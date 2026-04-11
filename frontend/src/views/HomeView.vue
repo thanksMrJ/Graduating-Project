@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAppStore } from '@/stores/appStore'
@@ -38,9 +38,20 @@ const openRegister = () => {
   registerVisible.value = true
 }
 
-const userCount = computed(() => appStore.users.length)
+const userCount = computed(() => appStore.userCount)
 
-const submitRegister = () => {
+onMounted(() => {
+  appStore.fetchPublicUserCount()
+})
+
+const PAGE_TITLE = '医疗多模态主页'
+const REGISTER_TITLE = '注册'
+
+watch(registerVisible, (open) => {
+  document.title = open ? REGISTER_TITLE : PAGE_TITLE
+})
+
+const submitRegister = async () => {
   const name = String(registerForm.name || '').trim()
   const password = String(registerForm.password || '').trim()
 
@@ -54,24 +65,14 @@ const submitRegister = () => {
   }
 
   try {
-    const res = appStore.registerUser({
+    const res = await appStore.registerUser({
       name,
       password,
       age: registerForm.age,
       gender: registerForm.gender,
       phone: registerForm.phone,
     })
-
-    if (res && typeof res === 'object' && 'ok' in res) {
-      if (!res.ok) {
-        ElMessage.error(res.message || '注册失败')
-        return
-      }
-      ElMessage.success(`注册成功：${res.user?.name || name}`)
-    } else {
-      ElMessage.success(`注册成功：${res?.name || name}`)
-    }
-
+    ElMessage.success(`注册成功：${res?.name || name}`)
     registerVisible.value = false
     router.push('/user/profile')
   } catch (e) {
@@ -89,7 +90,7 @@ const submitRegister = () => {
       <!-- 顶部：大标题置顶居中 -->
       <header class="hero">
         <h1 class="hero-title art-title">多模态病历分析辅助系统</h1>
-        <p class="hero-subtitle">基于影像、文本报告与结构化指标的综合分析展示平台（当前为前端演示版）</p>
+        <p class="hero-subtitle">基于影像、文本报告与结构化指标的综合分析展示平台（已对接后端 API）</p>
 
         <div class="chips">
           <span class="chip">病历任务管理</span>
@@ -107,7 +108,7 @@ const submitRegister = () => {
             <li>病历分析任务管理（创建、查询、记录追踪）</li>
             <li>分析结果可视化（风险等级、关键因素、解释信息）</li>
           </ul>
-          <p class="note">说明：当前版本不接后端，页面中的数据为演示占位，后续用 axios 调接口替换。</p>
+          <p class="note">说明：用户与病历任务数据由 Spring Boot 后端与数据库存储；推理结果占位，后续接模型接口。</p>
         </el-card>
       </section>
 
@@ -125,7 +126,7 @@ const submitRegister = () => {
             <el-button size="large" class="full-btn" @click="openRegister">用户注册</el-button>
           </div>
 
-          <div class="entry-tip">提示：管理员与用户数据均保存在本地 localStorage（演示版）。</div>
+          <div class="entry-tip">提示：登录态使用 JWT（user_token / admin_token），请先启动后端 localhost:8080。</div>
         </el-card>
       </section>
     </div>

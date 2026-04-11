@@ -16,29 +16,27 @@ import UserLogin from '../views/user/UserLogin.vue'
 import UserProfile from '../views/user/UserProfile.vue'
 import UserAnalyze from '../views/user/UserAnalyze.vue'
 import UserRecords from '../views/user/UserRecords.vue'
+import UserTaskAnalysis from '../views/user/UserTaskAnalysis.vue'
+import UserTaskAnalysisRun from '../views/user/UserTaskAnalysisRun.vue'
 
-function getCurrentUserIdFromLS() {
-  try {
-    const raw = localStorage.getItem('gp_app_store_v1')
-    if (!raw) return ''
-    const data = JSON.parse(raw)
-    return typeof data.currentUserId === 'string' ? data.currentUserId : ''
-  } catch {
-    return ''
-  }
+function hasUserToken() {
+  return !!localStorage.getItem('user_token')
 }
+
+const DEFAULT_TITLE = '医疗多模态主页'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', name: 'home', component: HomeView },
-    { path: '/table', name: 'table', component: TableView },
+    { path: '/', name: 'home', component: HomeView, meta: { title: DEFAULT_TITLE } },
+    { path: '/table', name: 'table', component: TableView, meta: { title: DEFAULT_TITLE } },
 
     // ===== Admin =====
-    { path: '/admin/login', name: 'admin-login', component: AdminLogin },
+    { path: '/admin/login', name: 'admin-login', component: AdminLogin, meta: { title: '管理员登录' } },
     {
       path: '/admin',
       component: AdminLayout,
+      meta: { title: '管理端' },
       children: [
         { path: '', redirect: '/admin/users' },
         { path: 'users', name: 'admin-users', component: AdminUsers },
@@ -47,20 +45,42 @@ const router = createRouter({
     },
 
     // ===== User =====
-    { path: '/user/login', name: 'user-login', component: UserLogin },
+    { path: '/user/login', name: 'user-login', component: UserLogin, meta: { title: '用户登录' } },
     {
       path: '/user',
       component: UserLayout,
+      meta: { title: '用户端' },
       children: [
         { path: '', redirect: '/user/profile' },
         { path: 'profile', name: 'user-profile', component: UserProfile },
-        { path: 'analyze', name: 'user-analyze', component: UserAnalyze },
-        { path: 'records', name: 'user-records', component: UserRecords },
+        { path: 'analyze', name: 'user-analyze', component: UserAnalyze, meta: { title: '创建任务' } },
+        { path: 'records', name: 'user-records', component: UserRecords, meta: { title: '待分析任务' } },
+        {
+          path: 'task-analysis',
+          name: 'user-task-analysis',
+          component: UserTaskAnalysis,
+          meta: { title: '任务分析' },
+        },
+        {
+          path: 'task-analysis/run/:id',
+          name: 'user-task-analysis-run',
+          component: UserTaskAnalysisRun,
+          meta: { title: '分析进行中' },
+        },
       ],
     },
 
-    { path: '/about', name: 'about', component: () => import('../views/AboutView.vue') },
+    { path: '/about', name: 'about', component: () => import('../views/AboutView.vue'), meta: { title: DEFAULT_TITLE } },
   ],
+})
+
+function applyDocumentTitle(to) {
+  const hit = [...to.matched].reverse().find((r) => r.meta?.title)
+  document.title = hit?.meta?.title || DEFAULT_TITLE
+}
+
+router.afterEach((to) => {
+  applyDocumentTitle(to)
 })
 
 router.beforeEach((to) => {
@@ -74,8 +94,7 @@ router.beforeEach((to) => {
   // ---- User guard ----
   if (to.path === '/user/login') return true
   if (to.path.startsWith('/user')) {
-    const uid = getCurrentUserIdFromLS()
-    if (!uid) return { path: '/user/login' }
+    if (!hasUserToken()) return { path: '/user/login' }
   }
 
   return true

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAppStore } from '@/stores/appStore'
@@ -8,8 +8,18 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 
+onMounted(async () => {
+  try {
+    await appStore.fetchMe()
+    await appStore.fetchUserRecords()
+  } catch {
+    /* fetchMe 内会清理无效 token */
+  }
+})
+
 const activeMenu = computed(() => {
   if (route.path.startsWith('/user/analyze')) return '/user/analyze'
+  if (route.path.startsWith('/user/task-analysis')) return '/user/task-analysis'
   if (route.path.startsWith('/user/records')) return '/user/records'
   return '/user/profile'
 })
@@ -39,8 +49,9 @@ const logout = () => {
       <el-aside class="aside" width="240px">
         <el-menu :default-active="activeMenu" router class="menu">
           <el-menu-item index="/user/profile">个人信息</el-menu-item>
-          <el-menu-item index="/user/analyze">病历分析</el-menu-item>
-          <el-menu-item index="/user/records">病历分析记录</el-menu-item>
+          <el-menu-item index="/user/analyze">创建任务</el-menu-item>
+          <el-menu-item index="/user/records">待分析任务</el-menu-item>
+          <el-menu-item index="/user/task-analysis">任务分析</el-menu-item>
         </el-menu>
       </el-aside>
 

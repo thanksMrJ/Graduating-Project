@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { apiPublic } from '@/api/http'
 
 const router = useRouter()
 
@@ -24,17 +25,18 @@ const login = async () => {
 
   loading.value = true
   try {
-    // ✅ 演示版账号密码（后续接后端接口再替换）
-    if (form.username !== 'admin' || form.password !== '123456') {
-      ElMessage.error('账号或密码错误（演示账号：admin / 123456）')
-      return
-    }
-
-    // ✅ 写入 token（配合 router 守卫使用）
-    localStorage.setItem('admin_token', 'demo-token')
-
+    const data = await apiPublic('/api/v1/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: form.username.trim(),
+        password: form.password,
+      }),
+    })
+    localStorage.setItem('admin_token', data.token)
     ElMessage.success('登录成功')
     router.push('/admin/users')
+  } catch (e) {
+    ElMessage.error(e?.message || '登录失败')
   } finally {
     loading.value = false
   }
@@ -51,7 +53,7 @@ const goHome = () => router.push('/')
       <div class="header">
         <div class="badge">ADMIN</div>
         <h2 class="title">管理员登录</h2>
-        <p class="sub">进入系统管理后台（当前为前端演示版）</p>
+        <p class="sub">进入系统管理后台（默认账号 admin / 123456，首次启动由后端初始化）</p>
       </div>
 
       <el-form

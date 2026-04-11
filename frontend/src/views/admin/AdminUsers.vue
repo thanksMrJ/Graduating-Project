@@ -1,17 +1,23 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useAppStore } from '@/stores/appStore'
+import { adminApi } from '@/api/http'
 
-const appStore = useAppStore()
-
+const users = ref([])
 const keyword = ref('')
+
+const loadUsers = async () => {
+  users.value = await adminApi('/api/v1/admin/users', { method: 'GET' })
+}
+
+onMounted(() => {
+  loadUsers().catch((e) => ElMessage.error(e?.message || '加载用户失败'))
+})
 
 const filteredUsers = computed(() => {
   const k = keyword.value.trim()
-  if (!k) return appStore.users
-
-  return appStore.users.filter((u) => {
+  if (!k) return users.value
+  return users.value.filter((u) => {
     return (
       String(u.id).includes(k) ||
       String(u.name || '').includes(k) ||
@@ -35,13 +41,13 @@ const deleteUser = async (row) => {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning',
-      }
+      },
     )
-
-    appStore.adminDeleteUser(row.id)
+    await adminApi(`/api/v1/admin/users/${row.id}`, { method: 'DELETE' })
     ElMessage.success('删除成功')
-  } catch {
-    // user cancelled
+    await loadUsers()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e?.message || '删除失败')
   }
 }
 </script>

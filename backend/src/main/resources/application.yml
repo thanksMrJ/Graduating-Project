@@ -54,6 +54,12 @@ spring:
 app:
   cors:
     allowed-origins: "http://localhost:5174,http://127.0.0.1:5174"
+  jwt:
+    # HS256 密钥须足够长；生产务必用环境变量覆盖
+    secret: ${APP_JWT_SECRET:dev-medical-multimodal-jwt-secret-key-change-me-32bytes-min}
+    expire-hours: ${APP_JWT_EXPIRE_HOURS:72}
+  upload:
+    dir: ${APP_UPLOAD_DIR:./data/uploads}
 
 springdoc:
   api-docs:

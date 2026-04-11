@@ -19,9 +19,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ex.getCode(), ex.getMessage()));
+        HttpStatus status = switch (ex.getCode()) {
+            case 403 -> HttpStatus.FORBIDDEN;
+            case 404 -> HttpStatus.NOT_FOUND;
+            case 413 -> HttpStatus.PAYLOAD_TOO_LARGE;
+            default -> HttpStatus.BAD_REQUEST;
+        };
+        return ResponseEntity.status(status).body(ApiResponse.fail(ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
